@@ -96,18 +96,18 @@ class PreparseField extends Plugin
                 /** @var Element $element */
                 $element = $event->element;
                 $key = $element->id . '__' . $element->siteId;
-                
+
                 if (!\in_array($key, $this->preparsedElements['onSave'], true)) {
                     $this->preparsedElements['onSave'][] = $key;
 
                     $content = self::$plugin->preparseFieldService->getPreparseFieldsContent($element, 'onSave');
-                    
+
 
                     if (!empty($content)) {
                         if ($element instanceof Asset) {
                             $element->setScenario(Element::SCENARIO_DEFAULT);
                         }
-                        
+
                         $element->setFieldValues($content);
                         $success = Craft::$app->getElements()->saveElement($element, true, false);
 
@@ -126,14 +126,14 @@ class PreparseField extends Plugin
                 /** @var Element $element */
                 $element = $event->element;
                 $key = $element->id . '__' . $element->siteId;
-                
+
                 if (self::$plugin->preparseFieldService->shouldParseElementOnMove($element) && !\in_array($key, $this->preparsedElements['onMoveElement'], true)) {
                     $this->preparsedElements['onMoveElement'][] = $key;
 
                     if ($element instanceof Asset) {
                         $element->setScenario(Element::SCENARIO_DEFAULT);
                     }
-                    
+
                     $success = Craft::$app->getElements()->saveElement($element, true, false);
 
                     // if no success, log error

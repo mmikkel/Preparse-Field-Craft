@@ -11,8 +11,11 @@ namespace aelvan\preparsefield\fields;
 use Craft;
 use craft\base\ElementInterface;
 use craft\base\Field;
+use craft\base\PreviewableFieldInterface;
 use craft\db\mysql\Schema;
+use craft\helpers\DateTimeHelper;
 use craft\helpers\Db;
+use craft\i18n\Locale;
 
 /**
  *  Preparse field type
@@ -21,7 +24,7 @@ use craft\helpers\Db;
  * @package   PreparseField
  * @since     1.0.0
  */
-class PreparseFieldType extends Field
+class PreparseFieldType extends Field implements PreviewableFieldInterface
 {
     // Public Properties
     // =========================================================================
@@ -56,7 +59,7 @@ class PreparseFieldType extends Field
 
     // Public Methods
     // =========================================================================
-    
+
     public function rules()
     {
         $rules = parent::rules();
@@ -91,8 +94,43 @@ class PreparseFieldType extends Field
         if ($this->columnType === Schema::TYPE_DECIMAL) {
             return Db::getNumericalColumnType(null, null, $this->decimals);
         }
-        
+
         return $this->columnType;
+    }
+
+    /**
+     * @param mixed $value
+     * @param ElementInterface $element
+     * @return string
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function getTableAttributeHtml($value, ElementInterface $element): string
+    {
+        if (!$value) {
+            return '';
+        }
+        if ($this->columnType === Schema::TYPE_DATETIME) {
+            $formatter = Craft::$app->getFormatter();
+            /** @var DateTime $value */
+            return '<span title="' . $formatter->asDatetime($value, Locale::LENGTH_SHORT) . '">' . $formatter->asTimestamp($value, Locale::LENGTH_SHORT) . '</span>';
+        }
+        return parent::getTableAttributeHtml($value, $element);
+    }
+
+    /**
+     * @param $value
+     * @param ElementInterface|null $element
+     * @return \DateTime|false|mixed
+     */
+    public function normalizeValue($value, ElementInterface $element = null)
+    {
+        if ($this->columnType === Schema::TYPE_DATETIME) {
+            if ($value && ($date = DateTimeHelper::toDateTime($value)) !== false) {
+                return $date;
+            }
+            return null;
+        }
+        return parent::normalizeValue($value, $element);
     }
 
     /**
@@ -108,8 +146,9 @@ class PreparseFieldType extends Field
             Schema::TYPE_INTEGER => Craft::t('preparse-field', 'Number (integer)'),
             Schema::TYPE_DECIMAL => Craft::t('preparse-field', 'Number (decimal)'),
             Schema::TYPE_FLOAT => Craft::t('preparse-field', 'Number (float)'),
+            Schema::TYPE_DATETIME => Craft::t('preparse-field', 'Date (datetime)'),
         ];
-        
+
         $displayTypes = [
             'hidden' => 'Hidden',
             'textinput' => 'Text input',
@@ -139,8 +178,12 @@ class PreparseFieldType extends Field
         // Get our id and namespace
         $id = Craft::$app->getView()->formatInputId($this->handle);
         $namespacedId = Craft::$app->getView()->namespaceInputId($id);
-        
+
         // Render the input template
+        $displayType = $this->displayType;
+        if ($displayType !== 'hidden' && $this->columnType === Schema::TYPE_DATETIME) {
+            $displayType = 'date';
+        }
         return Craft::$app->getView()->renderTemplate(
             'preparse-field/_components/fields/_input',
             [
@@ -149,6 +192,7 @@ class PreparseFieldType extends Field
                 'field' => $this,
                 'id' => $id,
                 'namespacedId' => $namespacedId,
+                'displayType' => $displayType,
             ]
         );
     }

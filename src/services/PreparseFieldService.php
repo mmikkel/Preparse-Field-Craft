@@ -13,6 +13,7 @@ use aelvan\preparsefield\fields\PreparseFieldType;
 use Craft;
 use craft\base\Component;
 use craft\base\Element;
+use craft\helpers\DateTimeHelper;
 use craft\web\View;
 use craft\db\mysql\Schema;
 
@@ -121,6 +122,9 @@ class PreparseFieldService extends Component
             }
 
             return number_format(trim($fieldValue), 0, '.', '');
+        } else if ($columnType === Schema::TYPE_DATETIME) {
+            $fieldValue = \trim($fieldValue);
+            return !!$fieldValue && ($date = DateTimeHelper::toDateTime($fieldValue, true)) !== false ? $date : null;
         }
 
         return $fieldValue;
