@@ -124,7 +124,11 @@ class PreparseFieldService extends Component
             return number_format(trim($fieldValue), 0, '.', '');
         } else if ($columnType === Schema::TYPE_DATETIME) {
             $fieldValue = \trim($fieldValue);
-            return !!$fieldValue && ($date = DateTimeHelper::toDateTime($fieldValue, true)) !== false ? $date : null;
+            if (!$fieldValue || !$date = DateTimeHelper::toDateTime($fieldValue, true)) {
+                // Return an empty string rather than null to clear out existing DateTime value (null would mean "no change")
+                return '';
+            }
+            return $date;
         }
 
         return $fieldValue;
